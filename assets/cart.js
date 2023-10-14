@@ -1,3 +1,6 @@
+const TRIGGER_PRODUCT_ID = 44111462727919;
+const GIFT_PRODUCT_ID = 44107934007535;
+
 class CartRemoveButton extends HTMLElement {
   constructor() {
     super();
@@ -104,6 +107,7 @@ class CartItems extends HTMLElement {
   }
 
   updateQuantity(line, quantity, name, variantId) {
+    
     this.enableLoading(line);
 
     const body = JSON.stringify({
@@ -114,11 +118,12 @@ class CartItems extends HTMLElement {
     });
 
     fetch(`${routes.cart_change_url}`, { ...fetchConfig(), ...{ body } })
-      .then((response) => {
+      .then(async (response) => {
         return response.text();
       })
       .then((state) => {
         const parsedState = JSON.parse(state);
+       
         const quantityElement =
           document.getElementById(`Quantity-${line}`) || document.getElementById(`Drawer-quantity-${line}`);
         const items = document.querySelectorAll('.cart-item');
@@ -168,6 +173,7 @@ class CartItems extends HTMLElement {
         }
 
         publish(PUB_SUB_EVENTS.cartUpdate, { source: 'cart-items', cartData: parsedState, variantId: variantId });
+        this.adjustBundleProduct(parsedState);
       })
       .catch(() => {
         this.querySelectorAll('.loading-overlay').forEach((overlay) => overlay.classList.add('hidden'));
@@ -177,6 +183,18 @@ class CartItems extends HTMLElement {
       .finally(() => {
         this.disableLoading(line);
       });
+  }
+
+  adjustBundleProduct(parsedState){
+    var items = parsedState.items;
+
+    const hasTriggerProduct = items.find(item => item.variant_id == TRIGGER_PRODUCT_ID);
+    const hasGiftProduct = items.find(item => item.variant_id == GIFT_PRODUCT_ID);
+  
+    if(!hasTriggerProduct && hasGiftProduct){
+      var jacketLine = document.querySelector('[data-quantity-variant-id="44107934007535"]');
+      this.updateQuantity(jacketLine.dataset.index, 0);
+    }
   }
 
   updateLiveRegions(line, message) {
