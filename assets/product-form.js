@@ -1,3 +1,4 @@
+const FREE_PRODUCT_VARIANT_ID = 44107934007535;
 if (!customElements.get('product-form')) {
   customElements.define(
     'product-form',
@@ -43,7 +44,28 @@ if (!customElements.get('product-form')) {
 
         fetch(`${routes.cart_add_url}`, config)
           .then((response) => response.json())
-          .then((response) => {
+          .then(async (response) => {
+  
+
+            if(response.options_with_values[0].value == "Black" && response.options_with_values[1].value == "Medium"){
+              var cart = await fetch('/cart.js', {
+                credentials: 'same-origin',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Requested-With':'xmlhttprequest'
+                },
+                method: 'GET'
+              });
+              cart = await cart.json();
+
+              const giftAlreadyAdded = cart.items.find(item => item.variant_id == FREE_PRODUCT_VARIANT_ID);
+              if(!giftAlreadyAdded){
+                addBundleProduct({
+                  'id':FREE_PRODUCT_VARIANT_ID,
+                  'quantity': 1
+                });
+              }
+            }
             if (response.status) {
               publish(PUB_SUB_EVENTS.cartError, {
                 source: 'product-form',
@@ -111,4 +133,21 @@ if (!customElements.get('product-form')) {
       }
     }
   );
+}
+
+
+function addBundleProduct(productData){
+  fetch('/cart/add.js', {
+    body: JSON.stringify(productData),
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With':'xmlhttprequest'
+    },
+    method: 'POST'
+  }).then(function(response) {
+    return response.json();
+  }).catch(function(err) {
+    console.error(err)
+  });
 }
